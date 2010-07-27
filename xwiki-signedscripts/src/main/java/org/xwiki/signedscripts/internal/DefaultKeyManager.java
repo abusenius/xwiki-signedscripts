@@ -95,7 +95,7 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
         String fingerprint = cert.getFingerprint();
         try {
             // register the certificate in user document first (might fail)
-            this.storage.addCertificateFingerprint(this.docUtils.getCurrentUser(), fingerprint);
+            this.storage.addKeyPair(this.docUtils.getCurrentUser(), keys);
             this.certMap.put(fingerprint, cert);
             this.keysMap.put(fingerprint, keys);
         } catch (Exception exception) {
