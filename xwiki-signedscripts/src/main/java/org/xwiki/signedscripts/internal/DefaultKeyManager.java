@@ -21,8 +21,8 @@ package org.xwiki.signedscripts.internal;
 
 import java.security.GeneralSecurityException;
 import java.security.Security;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -49,6 +49,9 @@ import org.xwiki.signedscripts.KeyManager;
 @InstantiationStrategy(ComponentInstantiationStrategy.SINGLETON)
 public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager, Initializable
 {
+    /** The document storing a list of trusted certificate. */
+    private static final String TRUSTED_CERTIFICATES_DOC = "XWiki.TrustedCertificates";
+
     /** Used to get user certificates. */
     @Requirement
     private UserDocumentUtils docUtils;
@@ -60,12 +63,6 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
     /** Used to generate key pairs. */
     @Requirement
     private X509CryptoService cryptoService;
-
-    /** FIXME. */
-    private Map<String, XWikiX509Certificate> certMap = new HashMap<String, XWikiX509Certificate>();
-
-    /** FIXME. */
-    private Map<String, XWikiX509KeyPair> keysMap = new HashMap<String, XWikiX509KeyPair>();
 
     /**
      * {@inheritDoc}
@@ -90,18 +87,17 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
     {
         // TODO rights and actions
         // generate a self-signed certificate
-        XWikiX509KeyPair keys = cryptoService.newCertAndPrivateKey(daysOfValidity, password);
+        XWikiX509KeyPair keys = this.cryptoService.newCertAndPrivateKey(daysOfValidity, password);
         XWikiX509Certificate cert = keys.getCertificate();
         String fingerprint = cert.getFingerprint();
         try {
             // register the certificate in user document first (might fail)
             this.storage.addKeyPair(this.docUtils.getCurrentUser(), keys);
-            this.certMap.put(fingerprint, cert);
-            this.keysMap.put(fingerprint, keys);
         } catch (Exception exception) {
             throw new GeneralSecurityException(exception.getMessage(), exception);
         }
         // FIXME user creates its own key pair => admin must register it afterwards
+        this.storage.addCertificate(TRUSTED_CERTIFICATES_DOC, cert);
         return fingerprint;
     }
 
@@ -112,18 +108,30 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
      */
     public XWikiX509Certificate getCertificate(String fingerprint)
     {
-        return this.certMap.get(fingerprint);
+        try {
+            return this.storage.getUserCertificate(TRUSTED_CERTIFICATES_DOC, fingerprint);
+        } catch (GeneralSecurityException exception) {
+            // thrown when the certificate data is corrupt
+            return null;
+        }
     }
 
     /**
      * {@inheritDoc}
      * 
-     * @see org.xwiki.signedscripts.KeyManager#getKeyPair()
+     * @see org.xwiki.signedscripts.KeyManager#getKeyPair(java.lang.String)
      */
-    public XWikiX509KeyPair getKeyPair() throws GeneralSecurityException
+    public XWikiX509KeyPair getKeyPair(String password) throws GeneralSecurityException
     {
         // FIXME check access rights
-        return this.keysMap.get(getTrustedFingerprint(docUtils.getCurrentUser()));
+        String userName = this.docUtils.getCurrentUser();
+        List<String> userKeys = this.storage.getKeyPairFingerprintsForUser(userName);
+        Set<String> knownCerts = getKnownFingerprints();
+        userKeys.retainAll(knownCerts);
+        if (userKeys.size() > 0) {
+            return this.storage.getUserKeyPair(userName, userKeys.get(0), password);
+        }
+        return null;
     }
 
     /**
@@ -136,7 +144,7 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
         if (!this.storage.getCertificateFingerprintsForUser(userName).contains(certificate.getFingerprint())) {
             throw new GeneralSecurityException("Given certificate is not owned by the user \"" + userName + "\"");
         }
-        this.certMap.put(certificate.getFingerprint(), certificate);
+        this.storage.addCertificate(TRUSTED_CERTIFICATES_DOC, certificate);
     }
 
     /**
@@ -146,8 +154,7 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
      */
     public void unregister(String fingerprint) throws GeneralSecurityException
     {
-        this.certMap.remove(fingerprint);
-        this.keysMap.remove(fingerprint);
+        this.storage.removeFingerprint(TRUSTED_CERTIFICATES_DOC, fingerprint);
     }
 
     /**
@@ -157,7 +164,7 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
      */
     public Set<String> getKnownFingerprints()
     {
-        return this.certMap.keySet();
+        return new HashSet<String>(this.storage.getCertificateFingerprintsForUser(TRUSTED_CERTIFICATES_DOC));
     }
 
     /**
@@ -167,10 +174,16 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
      */
     public String getTrustedFingerprint(String userName)
     {
-        for (String fp : this.storage.getCertificateFingerprintsForUser(userName)) {
-            if (certMap.containsKey(fp)) {
-                return fp;
-            }
+        Set<String> knownCerts = getKnownFingerprints();
+        List<String> userKeys = this.storage.getKeyPairFingerprintsForUser(userName);
+        userKeys.retainAll(knownCerts);
+        if (userKeys.size() > 0) {
+            return userKeys.get(0);
+        }
+        List<String> userCerts = this.storage.getCertificateFingerprintsForUser(userName);
+        userCerts.retainAll(knownCerts);
+        if (userCerts.size() > 0) {
+            return userCerts.get(0);
         }
         return null;
     }

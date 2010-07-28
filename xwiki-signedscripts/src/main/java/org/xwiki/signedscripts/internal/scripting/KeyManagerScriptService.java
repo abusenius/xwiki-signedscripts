@@ -86,11 +86,11 @@ public class KeyManagerScriptService implements ScriptService, KeyManager
     /**
      * {@inheritDoc}
      * 
-     * @see org.xwiki.signedscripts.KeyManager#getKeyPair()
+     * @see org.xwiki.signedscripts.KeyManager#getKeyPair(java.lang.String)
      */
-    public XWikiX509KeyPair getKeyPair() throws GeneralSecurityException
+    public XWikiX509KeyPair getKeyPair(String password) throws GeneralSecurityException
     {
-        return keyManager.getKeyPair();
+        return keyManager.getKeyPair(password);
     }
 
     /**

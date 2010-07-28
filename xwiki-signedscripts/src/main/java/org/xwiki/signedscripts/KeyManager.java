@@ -74,7 +74,7 @@ public interface KeyManager
     void unregister(String fingerprint) throws GeneralSecurityException;
 
     /**
-     * Get a certificate by fingerprint or null if the certificate does not exist.
+     * Get a certificate by fingerprint or null if the certificate is not registered.
      * 
      * @param fingerprint certificate fingerprint to use
      * @return the corresponding certificate or null if not found
@@ -82,12 +82,13 @@ public interface KeyManager
     XWikiX509Certificate getCertificate(String fingerprint);
 
     /**
-     * Get the key pair associated with the current user or null if the key pair is not registered.
+     * Get the key pair associated with the current user or null if the key pair does not exists or is not registered.
      * 
+     * @param password the password to use for decryption
      * @return the corresponding key pair on success, null otherwise
      * @throws GeneralSecurityException on insufficient access rights
      */
-    XWikiX509KeyPair getKeyPair() throws GeneralSecurityException;
+    XWikiX509KeyPair getKeyPair(String password) throws GeneralSecurityException;
 
     /**
      * Get a set of all known trusted certificate fingerprints.

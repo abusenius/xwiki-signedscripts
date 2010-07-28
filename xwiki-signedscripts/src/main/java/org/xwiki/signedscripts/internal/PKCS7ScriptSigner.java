@@ -67,7 +67,7 @@ public class PKCS7ScriptSigner implements ScriptSigner
     public SignedScript sign(String code, String password) throws GeneralSecurityException
     {
         SignedScript script = prepareScriptForSigning(code);
-        XWikiX509KeyPair keyPair = this.keyManager.getKeyPair();
+        XWikiX509KeyPair keyPair = this.keyManager.getKeyPair(password);
         if (keyPair == null) {
             throw new GeneralSecurityException("Could not find the user key pair to sign with");
         }

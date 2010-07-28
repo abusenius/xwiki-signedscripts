@@ -25,7 +25,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.jmock.Expectations;
+import org.jmock.States;
+import org.jmock.api.Action;
+import org.jmock.api.Invocation;
 import org.junit.Before;
 import org.xwiki.crypto.internal.UserDocumentUtils;
 import org.xwiki.crypto.x509.XWikiX509Certificate;
@@ -43,6 +48,9 @@ import org.xwiki.test.AbstractComponentTestCase;
  */
 public abstract class AbstractSignedScriptsTest extends AbstractComponentTestCase
 {
+    /** The document storing all trusted certificates. */
+    private static final String TRUSTED_DOC = "XWiki.TrustedCertificates";
+
     /** Fingerprint of the test certificate. */
     private static final String CERT_FP = "eb31104d2fb1bc8495cf39e75124aef3f9ab7bfb";
 
@@ -179,6 +187,12 @@ public abstract class AbstractSignedScriptsTest extends AbstractComponentTestCas
     /** Need to register new fingerprints manually, since {@link UserDocumentUtils} is mocked. */
     private final List<String> userFingerprints = new LinkedList<String>();
 
+    /** Filled by certificate storage matcher. */
+    private final List<XWikiX509Certificate> addedCerts = new LinkedList<XWikiX509Certificate>();
+
+    /** Filled by key pair storage matcher. */
+    private final List<XWikiX509KeyPair> addedKeys = new LinkedList<XWikiX509KeyPair>();
+
     /**
      * {@inheritDoc}
      * 
@@ -203,10 +217,17 @@ public abstract class AbstractSignedScriptsTest extends AbstractComponentTestCas
     {
         super.registerComponents();
 
+        // delete previously registered fingerprints
+        userFingerprints.clear();
+
+        // storing matcher auto-registers all added certificates
+        final StoringMatcher<XWikiX509Certificate> certStore = new StoringMatcher<XWikiX509Certificate>(this.addedCerts, this.userFingerprints);
+        final StoringMatcher<XWikiX509KeyPair> keyStore = new StoringMatcher<XWikiX509KeyPair>(this.addedKeys, this.userFingerprints);
         // mock document utils
         final UserDocumentUtils mockUtils = registerMockComponent(UserDocumentUtils.class);
         this.userFingerprints.add(getTestCertFingerprint());
         this.userFingerprints.add(getTestKeyPair().getFingerprint());
+        final States cert = getMockery().states("cert").startsAs("not registered");
         getMockery().checking(new Expectations() {{
             allowing(mockUtils).getCurrentUser();
                 will(returnValue(USER));
@@ -218,7 +239,25 @@ public abstract class AbstractSignedScriptsTest extends AbstractComponentTestCas
         getMockery().checking(new Expectations() {{
             allowing(mockStorage).getCertificateFingerprintsForUser(with(USER));
                 will(returnValue(userFingerprints));
-            allowing(mockStorage).addCertificateFingerprint(with(USER), with(any(String.class)));
+            allowing(mockStorage).addKeyPair(with(USER), with(keyStore));
+            allowing(mockStorage).getKeyPairFingerprintsForUser(with(USER));
+                will(returnValue(userFingerprints));
+            allowing(mockStorage).getUserKeyPair(with(USER), with(any(String.class)), with(any(String.class)));
+                will(keyStore);
+            allowing(mockStorage).getCertificateFingerprintsForUser(with(TRUSTED_DOC));
+                will(returnValue(userFingerprints));
+            // pretend registering of certificate fingerprints
+            allowing(mockStorage).getUserCertificate(with(TRUSTED_DOC), with(any(String.class)));
+                when(cert.is("not registered"));
+                will(returnValue(null));
+            allowing(mockStorage).getUserCertificate(with(TRUSTED_DOC), with(any(String.class)));
+                when(cert.is("registered"));
+                will(certStore);
+            allowing(mockStorage).addCertificate(with(TRUSTED_DOC), with(certStore));
+                then(cert.is("registered"));
+            allowing(mockStorage).removeFingerprint(with(TRUSTED_DOC), with(any(String.class)));
+                will(returnValue(true));
+                then(cert.is("not registered"));
         }});
     }
 
@@ -265,14 +304,79 @@ public abstract class AbstractSignedScriptsTest extends AbstractComponentTestCas
     }
 
     /**
-     * Manually "register" a fingerprint. It will be included into the list returned by the mocked
-     * {@link UserDocumentUtils#getCertificateFingerprintsForUser(String)}
+     * A custom matcher action that puts all objects it matches into an external list and returns the first object
+     * from that list on invocation. Additionally, adds the fingerprint of certificates and key pairs to the given
+     * fingerprint list.
      * 
-     * @param fingerprint the fingerprint to add
+     * @param <T>
+     * @version $Id$
+     * @since 2.5
      */
-    protected void addFingerprint(String fingerprint)
+    private class StoringMatcher<T> extends BaseMatcher<T> implements Action
     {
-        this.userFingerprints.add(fingerprint);
+        /** Reference to the list where the data is stored. */
+        private final List<T> storage;
+
+        /** Reference to the fingerprint list. */
+        private final List<String> fingerprints;
+
+        /**
+         * Create new {@link AbstractSignedScriptsTest.StoringMatcher}.
+         * 
+         * @param storage the list where to put the data
+         * @param fingerprints the list where to put the fingerprints
+         */
+        public StoringMatcher(final List<T> storage, final List<String> fingerprints)
+        {
+            this.storage = storage;
+            this.fingerprints = fingerprints;
+        }
+
+        /**
+         * This implementation puts all passed arguments into the storage list.
+         *
+         * @param object the object to match
+         * @return true if the object was successfully casted to T and stored in the list, false otherwise
+         * @see org.hamcrest.Matcher#matches(java.lang.Object)
+         */
+        @SuppressWarnings("unchecked")
+        public boolean matches(Object object)
+        {
+            if (object instanceof XWikiX509Certificate) {
+                this.fingerprints.add(((XWikiX509Certificate) object).getFingerprint());
+            } else if (object instanceof XWikiX509KeyPair) {
+                this.fingerprints.add(((XWikiX509KeyPair) object).getFingerprint());
+            }
+            try {
+                this.storage.add((T)object);
+                return true;
+            } catch (ClassCastException ex) {
+                return false;
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         * 
+         * @see org.hamcrest.SelfDescribing#describeTo(org.hamcrest.Description)
+         */
+        public void describeTo(Description d)
+        {
+            d.appendText("STORING MATCHER: " + this.storage);
+        }
+
+        /**
+         * {@inheritDoc}
+         * 
+         * @see org.jmock.api.Invokable#invoke(org.jmock.api.Invocation)
+         */
+        public T invoke(Invocation invocation) throws Throwable
+        {
+            if (this.storage.isEmpty()) {
+                return null;
+            }
+            return this.storage.get(0);
+        }
     }
 }
 

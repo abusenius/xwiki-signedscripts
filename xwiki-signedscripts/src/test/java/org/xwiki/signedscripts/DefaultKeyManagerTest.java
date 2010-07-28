@@ -76,11 +76,9 @@ public class DefaultKeyManagerTest extends AbstractSignedScriptsTest
         // several tests, because key pair generation is quite slow
         final String password = "password";
         String kp = keyManager.createKeyPair(password, 1);
-        // manually "register" fingerprint
-        addFingerprint(kp);
 
         XWikiX509Certificate cert = keyManager.getCertificate(kp);
-        XWikiX509KeyPair keyPair = keyManager.getKeyPair();
+        XWikiX509KeyPair keyPair = keyManager.getKeyPair(password);
         Assert.assertNotNull(cert);
         Assert.assertNotNull(keyPair);
 
