@@ -95,13 +95,17 @@ public class DefaultCryptoStorageUtils implements CryptoStorageUtils
      * 
      * @see org.xwiki.crypto.internal.UserDocumentUtils#addCertificate(java.lang.String, org.xwiki.crypto.x509.XWikiX509Certificate)
      */
-    public void addCertificate(String userName, XWikiX509Certificate certificate) throws Exception
+    public void addCertificate(String userName, XWikiX509Certificate certificate) throws GeneralSecurityException
     {
         ObjectReference certObject = getObjectReference(userName, this.certClassName);
-        int idx = this.bridge.addObject(certObject);
-        this.bridge.setProperty(certObject, idx, this.certFingerprintPropertyName, certificate.getFingerprint());
-        this.bridge.setProperty(certObject, idx, this.certIssuerFPPropertyName, certificate.getIssuerFingerprint());
-        this.bridge.setProperty(certObject, idx, this.certCertificatePropertyName, certificate.toPEMString());
+        try {
+            int idx = this.bridge.addObject(certObject);
+            this.bridge.setProperty(certObject, idx, this.certFingerprintPropertyName, certificate.getFingerprint());
+            this.bridge.setProperty(certObject, idx, this.certIssuerFPPropertyName, certificate.getIssuerFingerprint());
+            this.bridge.setProperty(certObject, idx, this.certCertificatePropertyName, certificate.toPEMString());
+        } catch (Exception exception) {
+            throw new GeneralSecurityException(exception);
+        }
     }
 
     /**
@@ -145,13 +149,60 @@ public class DefaultCryptoStorageUtils implements CryptoStorageUtils
      * 
      * @see org.xwiki.crypto.internal.UserDocumentUtils#addKeyPair(java.lang.String, org.xwiki.crypto.x509.XWikiX509KeyPair)
      */
-    public void addKeyPair(String userName, XWikiX509KeyPair keyPair) throws Exception
+    public void addKeyPair(String userName, XWikiX509KeyPair keyPair) throws GeneralSecurityException
     {
         ObjectReference keyObject = getObjectReference(userName, this.keyClassName);
-        int idx = this.bridge.addObject(keyObject);
-        this.bridge.setProperty(keyObject, idx, this.keyFingerprintPropertyName, keyPair.getFingerprint());
-        this.bridge.setProperty(keyObject, idx, this.keyPairPropertyName, keyPair.serializeAsBase64());
+        try {
+            int idx = this.bridge.addObject(keyObject);
+            this.bridge.setProperty(keyObject, idx, this.keyFingerprintPropertyName, keyPair.getFingerprint());
+            this.bridge.setProperty(keyObject, idx, this.keyPairPropertyName, keyPair.serializeAsBase64());
+        } catch (Exception exception) {
+            throw new GeneralSecurityException(exception);
+        }
         addCertificate(userName, keyPair.getCertificate());
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @see org.xwiki.crypto.internal.UserDocumentUtils#removeFingerprint(java.lang.String, java.lang.String)
+     */
+    public boolean removeFingerprint(String userDocument, String fingerprint) throws GeneralSecurityException
+    {
+        boolean result = removeObjects(userDocument, this.keyClassName, this.keyFingerprintPropertyName, fingerprint);
+        return removeObjects(userDocument, this.certClassName, this.certFingerprintPropertyName, fingerprint)
+                || result;
+    }
+
+    /**
+     * Remove all objects having the given property set to the given value.
+     * 
+     * @param documentName name of the document where the objects are stored
+     * @param className XWiki class name of the object
+     * @param propName the property name
+     * @param value the value to look for
+     * @return true if some objects were removed, false otherwise
+     * @throws GeneralSecurityException on errors
+     */
+    private boolean removeObjects(String documentName, String className, String propName, String value)
+        throws GeneralSecurityException
+    {
+        // relies on {@link getStringPropertyList(String, String, String)} leaving properties in correct order
+        ObjectReference object = getObjectReference(documentName, className);
+        List<String> list = getStringPropertyList(documentName, className, propName);
+        int index = 0;
+        boolean removed = false;
+        try {
+            for (String fp : list) {
+                if (fp != null && fp.equals(value)) {
+                    removed |= this.bridge.removeObject(object, index);
+                }
+                index++;
+            }
+        } catch (Exception exception) {
+            throw new GeneralSecurityException(exception);
+        }
+        return removed;
     }
 
     /**
@@ -162,7 +213,7 @@ public class DefaultCryptoStorageUtils implements CryptoStorageUtils
     public XWikiX509KeyPair getUserKeyPair(String userName, String fingerprint, String password)
         throws GeneralSecurityException
     {
-        // relies on {@link getStringPropertyList(String, String, String)} leaving certificates in correct order
+        // relies on {@link getStringPropertyList(String, String, String)} leaving keys in correct order
         List<String> list = getStringPropertyList(userName, this.keyClassName, this.keyFingerprintPropertyName);
         int idx = list.indexOf(fingerprint);
         if (idx < 0) {

@@ -49,9 +49,9 @@ public interface CryptoStorageUtils
      * 
      * @param userName reference to the user document
      * @param certificate the certificate to add
-     * @throws Exception on errors
+     * @throws GeneralSecurityException on errors
      */
-    void addCertificate(String userName, XWikiX509Certificate certificate) throws Exception;
+    void addCertificate(String userName, XWikiX509Certificate certificate) throws GeneralSecurityException;
 
     /**
      * Get the certificate object from the data stored in user's profile by its fingerprint. Returns null if the given
@@ -77,9 +77,9 @@ public interface CryptoStorageUtils
      * 
      * @param userName reference to the user document
      * @param keyPair the key pair to add
-     * @throws Exception on errors
+     * @throws GeneralSecurityException on errors
      */
-    void addKeyPair(String userName, XWikiX509KeyPair keyPair) throws Exception;
+    void addKeyPair(String userName, XWikiX509KeyPair keyPair) throws GeneralSecurityException;
 
     /**
      * Get the key pair object from the data stored in user's profile by its fingerprint. Returns null if the given
@@ -93,4 +93,14 @@ public interface CryptoStorageUtils
      */
     XWikiX509KeyPair getUserKeyPair(String userName, String fingerprint, String password)
         throws GeneralSecurityException;
+
+    /**
+     * Remove the certificate and/or key pair with the given fingerprint for the user document.
+     * 
+     * @param userDocument name of the target user document
+     * @param fingerprint fingerprint of the certificate or key pair to remove
+     * @return true on success, false otherwise
+     * @throws GeneralSecurityException if the document cannot be accessed
+     */
+    boolean removeFingerprint(String userDocument, String fingerprint) throws GeneralSecurityException;
 }
