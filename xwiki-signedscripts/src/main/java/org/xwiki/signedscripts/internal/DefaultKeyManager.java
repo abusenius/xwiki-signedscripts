@@ -42,6 +42,11 @@ import org.xwiki.signedscripts.KeyManager;
 /**
  * Default implementation of the {@link KeyManager}.
  * 
+ * This implementation uses a document called XWiki.TrustedCertificates to store the list of trusted certificates.
+ * This list is used to verify whether a given certificate should get PR or not.
+ * FIXME Use a signed PR permission object in the user doc to verify that the owner of a specific certificate has PR.
+ *       For now, just check that the user has global PR right
+ * 
  * @version $Id$
  * @since 2.5
  */
