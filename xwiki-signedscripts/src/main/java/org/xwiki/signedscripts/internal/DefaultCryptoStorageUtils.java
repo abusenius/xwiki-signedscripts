@@ -246,12 +246,6 @@ public class DefaultCryptoStorageUtils implements CryptoStorageUtils
         for (int index = 0; index < count; index++) {
             // NOTE the value may be null (if some objects were deleted for example)
             out.add((String) this.bridge.getProperty(objectReference, index, propertyName));
-            if (index > 500) {
-                // FIXME not needed any more, total count is known
-                throw new InfiniteLoopException("Either the document " + document + " has over 500 "
-                                                + className
-                                                + " objects or something went wrong. Chickening out...");
-            }
         }
         return out;
     }
@@ -268,29 +262,6 @@ public class DefaultCryptoStorageUtils implements CryptoStorageUtils
         DocumentReference userDocReference = this.resolver.resolve(userName);
         ObjectReference certObject = new ObjectReference(className, userDocReference);
         return certObject;
-    }
-
-
-    /**
-     * Thrown when a loop has looped over an unreasonable number of cycles and is probably looping infinitely.
-     * 
-     * @version $Id$
-     * @since 2.5
-     */
-    public static class InfiniteLoopException extends RuntimeException
-    {
-        /** Version ID. */
-        private static final long serialVersionUID = -7135937602338126967L;
-
-        /**
-         * The Constructor.
-         *
-         * @param message the message to give in the Exception
-         */
-        public InfiniteLoopException(String message)
-        {
-            super(message);
-        }
     }
 }
 
