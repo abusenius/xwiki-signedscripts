@@ -116,6 +116,7 @@ public class DefaultKeyManager extends AbstractLogEnabled implements KeyManager,
         try {
             return this.storage.getUserCertificate(TRUSTED_CERTIFICATES_DOC, fingerprint);
         } catch (GeneralSecurityException exception) {
+            getLogger().debug(exception.toString());
             // thrown when the certificate data is corrupt
             return null;
         }
