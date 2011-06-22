@@ -25,54 +25,49 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.xwiki.platform</groupId>
-    <artifactId>xwiki-core-rendering-macros-parent</artifactId>
-    <version>2.7-SNAPSHOT</version>
+    <groupId>org.xwiki.rendering</groupId>
+    <artifactId>xwiki-rendering-macros</artifactId>
+    <version>3.2-SNAPSHOT</version>
   </parent>
-  <artifactId>xwiki-core-rendering-macro-signed</artifactId>
-  <name>XWiki Platform - Core - Rendering - Macro - Signed</name>
-  <description>XWiki Platform - Core - Rendering - Macro - Signed</description>
+  <artifactId>xwiki-rendering-macro-signed</artifactId>
+  <name>XWiki Rendering - Macro - Signed</name>
+  <description>XWiki Rendering - Macro - Signed</description>
   <properties>
     <!-- Skip Clirr execution, since this is a new component -->
     <xwiki.clirr.skip>true</xwiki.clirr.skip>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-rendering-api</artifactId>
-      <version>${pom.version}</version>
+      <groupId>org.xwiki.rendering</groupId>
+      <artifactId>xwiki-rendering-api</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-signedscripts</artifactId>
-      <version>${pom.version}</version>
+      <artifactId>xwiki-platform-signedscripts</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- Testing dependencies -->
-    <dependency>
-      <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-rendering-api</artifactId>
-      <version>${pom.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
   <build>
     <plugins>
+      <!-- FIXME workaround, cannot be in rendering with dependency on org.xwiki.platform
+           move the macro elsewhere -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>**/RenderingTests.java</include>
-            <include>**/*Test.java</include>
-          </includes>
-        </configuration>
-      </plugin>
-      <plugin>
-        <!-- Apply the Checkstyle configurations defined in the top level pom.xml file -->
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-platform-isolation</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
