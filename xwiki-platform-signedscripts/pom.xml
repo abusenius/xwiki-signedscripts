@@ -26,12 +26,12 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.xwiki.platform</groupId>
-    <artifactId>xwiki-core-parent</artifactId>
-    <version>2.7-SNAPSHOT</version>
+    <artifactId>xwiki-platform-core</artifactId>
+    <version>3.2-SNAPSHOT</version>
   </parent>
-  <artifactId>xwiki-core-signedscripts</artifactId>
-  <name>XWiki Platform - Core - Signed Scripts Services</name>
-  <description>XWiki Platform - Core - Signed Scripts</description>
+  <artifactId>xwiki-platform-signedscripts</artifactId>
+  <name>XWiki Platform - Signed Scripts Services</name>
+  <description>XWiki Platform - Signed Scripts</description>
   <properties>
     <!-- Skip Clirr execution, since this is a new component -->
     <xwiki.clirr.skip>true</xwiki.clirr.skip>
@@ -39,14 +39,14 @@
   <dependencies>
     <dependency>
       <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-crypto</artifactId>
-      <version>${pom.version}</version>
+      <artifactId>xwiki-platform-crypto</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <!-- Used by CryptoScriptService which provides a service to Velocity scripts -->
     <dependency>
-      <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-script</artifactId>
-      <version>${pom.version}</version>
+      <groupId>org.xwiki.commons</groupId>
+      <artifactId>xwiki-commons-script</artifactId>
+      <version>${commons.version}</version>
     </dependency>
     <!-- The core cryptography engine, used everywhere -->
     <dependency>
@@ -56,23 +56,14 @@
     </dependency>
     <!-- Testing dependencies -->
     <dependency>
-      <groupId>org.xwiki.platform</groupId>
-      <artifactId>xwiki-core-shared-tests</artifactId>
-      <version>${pom.version}</version>
+      <groupId>org.xwiki.commons</groupId>
+      <artifactId>xwiki-commons-test</artifactId>
+      <version>${commons.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <includes>
-            <include>**/*Test.java</include>
-          </includes>
-        </configuration>
-      </plugin>
       <plugin>
         <!-- Apply the Checkstyle configurations defined in the top level pom.xml file -->
         <groupId>org.apache.maven.plugins</groupId>
