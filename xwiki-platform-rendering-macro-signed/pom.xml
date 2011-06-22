@@ -25,13 +25,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.xwiki.rendering</groupId>
-    <artifactId>xwiki-rendering-macros</artifactId>
+    <groupId>org.xwiki.platform</groupId>
+    <artifactId>xwiki-platform-rendering-macros</artifactId>
     <version>3.2-SNAPSHOT</version>
   </parent>
-  <artifactId>xwiki-rendering-macro-signed</artifactId>
-  <name>XWiki Rendering - Macro - Signed</name>
-  <description>XWiki Rendering - Macro - Signed</description>
+  <artifactId>xwiki-platform-rendering-macro-signed</artifactId>
+  <name>XWiki Platform - Rendering - Macro - Signed</name>
+  <description>XWiki Platform - Rendering - Macro - Signed</description>
   <properties>
     <!-- Skip Clirr execution, since this is a new component -->
     <xwiki.clirr.skip>true</xwiki.clirr.skip>
@@ -50,25 +50,4 @@
 
     <!-- Testing dependencies -->
   </dependencies>
-  <build>
-    <plugins>
-      <!-- FIXME workaround, cannot be in rendering with dependency on org.xwiki.platform
-           move the macro elsewhere -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>enforce-platform-isolation</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <skip>true</skip>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>
